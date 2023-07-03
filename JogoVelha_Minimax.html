@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .row > div {
+            border: 1px solid black;
+            width: 100px;
+            height: 100px;
+            text-align: center;
+            line-height: 100px;
+            font-size: 2em;
+            margin: 0;
+            padding: 0;
+        }
+        .row {
+            display: flex;
+            justify-content: center;
+        }
+        #tictactoe-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #tictactoe-board {
+            width: 300px;
+            margin: 0 auto;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        #restart-button {
+            display: block;
+            width: 240px;
+            height: 40px;
+            margin: 20px auto;
+        }
+        #message {
+            text-align: center;
+            font-size: 1em;
+        }
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+   <div id="game-container">
+        <h2>Jogue o Jogo da Velha e tente vencer a IA!</h2>
+    <div id="tictactoe-container">
+        <div id="tictactoe-board">
+            <div class="row">
+                <div onclick="makeMove(0, 0)" id="cell00"></div>
+                <div onclick="makeMove(0, 1)" id="cell01"></div>
+                <div onclick="makeMove(0, 2)" id="cell02"></div>
+            </div>
+            <div class="row">
+                <div onclick="makeMove(1, 0)" id="cell10"></div>
+                <div onclick="makeMove(1, 1)" id="cell11"></div>
+                <div onclick="makeMove(1, 2)" id="cell12"></div>
+            </div>
+            <div class="row">
+                <div onclick="makeMove(2, 0)" id="cell20"></div>
+                <div onclick="makeMove(2, 1)" id="cell21"></div>
+                <div onclick="makeMove(2, 2)" id="cell22"></div>
+            </div>
+        </div>
+        <button id="restart-button" onclick="restartGame()">Restart</button>
+        <p id="message"></p>
+    </div>
+    <script>
+        let board = Array(3).fill(null).map(() => Array(3).fill(null));
+        let humanPlayer = 'O';
+        let aiPlayer = 'X';
+        let currentPlayer = humanPlayer;
+
+        function checkWinner() {
+            let winner = null;
+            
+            // horizontal
+            for (let i = 0; i < 3; i++) {
+                if (board[i][0] === board[i][1] && board[i][1] === board[i][2] && board[i][0] !== null) {
+                    winner = board[i][0];
+                }
+            }
+            
+            // Vertical
+            for (let i = 0; i < 3; i++) {
+                if (board[0][i] === board[1][i] && board[1][i] === board[2][i] && board[0][i] !== null) {
+                    winner = board[0][i];
+                }
+            }
+            
+            // Diagonal
+            if (board[0][0] === board[1][1] && board[1][1] === board[2][2] && board[0][0] !== null) {
+                winner = board[0][0];
+            }
+            if (board[2][0] === board[1][1] && board[1][1] === board[0][2] && board[2][0] !== null) {
+                winner = board[2][0];
+            }
+            
+            let openSpots = 0;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    if (!board[i][j]) {
+                        openSpots++;
+                    }
+                }
+            }
+            
+            if (winner === null && openSpots === 0) {
+                return 'tie';
+            } else {
+                return winner;
+            }
+        }
+
+        function makeMove(i, j) {
+            if(board[i][j] || checkWinner()) {
+                return;
+            }
+            board[i][j] = humanPlayer;
+            let cell = document.getElementById(`cell${i}${j}`);
+            cell.innerText = humanPlayer;
+            cell.style.color = 'blue';
+            currentPlayer = aiPlayer;
+            let winner = checkWinner();
+            if(winner) {
+                endGame(winner);
+            } else {
+                aiTurn();
+            }
+        }
+
+        function aiTurn() {
+            let bestScore = -Infinity;
+            let move;
+            for(let i=0; i<3; i++) {
+                for(let j=0; j<3; j++) {
+                    if(!board[i][j]) {
+                        board[i][j] = aiPlayer;
+                        let score = minimax(board, 0, false);
+                        board[i][j] = null;
+                        if(score > bestScore) {
+                            bestScore = score;
+                            move = { i, j };
+                        }
+                    }
+                }
+            }
+            board[move.i][move.j] = aiPlayer;
+            let cell = document.getElementById(`cell${move.i}${move.j}`);
+            cell.innerText = aiPlayer;
+            cell.style.color = 'red';
+            currentPlayer = humanPlayer;
+            let winner = checkWinner();
+            if(winner) {
+                endGame(winner);
+            }
+        }
+
+        function minimax(board, depth, isMaximizing) {
+            let winner = checkWinner();
+            if(winner !== null) {
+                if(winner === aiPlayer) {
+                    return 1;
+                } else if(winner === humanPlayer) {
+                    return -1;
+                } else {
+                    return 0;
+                }
+            }
+            if(isMaximizing) {
+                let bestScore = -Infinity;
+                for(let i=0; i<3; i++) {
+                    for(let j=0; j<3; j++) {
+                        if(!board[i][j]) {
+                            board[i][j] = aiPlayer;
+                            let score = minimax(board, depth + 1, false);
+                            board[i][j] = null;
+                            bestScore = Math.max(score, bestScore);
+                        }
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for(let i=0; i<3; i++) {
+                    for(let j=0; j<3; j++) {
+                        if(!board[i][j]) {
+                            board[i][j] = humanPlayer;
+                            let score = minimax(board, depth + 1, true);
+                            board[i][j] = null;
+                            bestScore = Math.min(score, bestScore);
+                        }
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        function restartGame() {
+            board = Array(3).fill(null).map(() => Array(3).fill(null));
+            currentPlayer = humanPlayer;
+            document.getElementById('message').innerText = '';
+            for(let i=0; i<3; i++) {
+                for(let j=0; j<3; j++) {
+                    let cell = document.getElementById(`cell${i}${j}`);
+                    cell.innerText = '';
+                }
+            }
+        }
+
+        function endGame(winner) {
+            let messageElement = document.getElementById('message');
+            if(winner === 'tie') {
+                messageElement.innerText = 'Empate!';
+            } else if(winner === humanPlayer) {
+                messageElement.innerText = 'Você venceu!';
+            } else {
+                messageElement.innerText = 'IA venceu!';
+            }
+        }
+    </script>
+</body>
+</html>
